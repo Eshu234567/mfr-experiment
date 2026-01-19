@@ -186,6 +186,8 @@ app.post('/api/update-student-k', (req, res) => {
 
 // ---------- SAVE RUN API (NEW) ----------
 app.post('/api/save-run', (req, res) => {
+  console.log('📥 Saving run:', req.body);
+
   const {
     usn,
     CA01,
@@ -222,10 +224,29 @@ app.post('/api/save-run', (req, res) => {
   );
 });
 
-// ---------- FETCH STUDENT RUNS API (NEW) ----------
+// ---------- FETCH STUDENT RUNS ----------
 app.get('/api/runs/:usn', (req, res) => {
   const { usn } = req.params;
-  // ---------- FETCH ALL RUNS (TEACHER) ----------
+
+  db.all(
+    `
+    SELECT *
+    FROM experiment_runs
+    WHERE usn = ?
+    ORDER BY created_at ASC
+    `,
+    [usn],
+    (err, rows) => {
+      if (err) {
+        console.error('❌ Fetch runs error:', err);
+        return res.status(500).json({ error: 'Database error while fetching runs' });
+      }
+
+      res.json({ runs: rows });
+    }
+  );
+});
+// ---------- FETCH ALL RUNS (TEACHER) ----------
 app.get('/api/all-runs', (req, res) => {
   db.all(
     `
@@ -247,8 +268,7 @@ app.get('/api/all-runs', (req, res) => {
     }
   );
 });
-
-  // ---------- DELETE ALL RUNS FOR A STUDENT ----------
+// ---------- DELETE ALL RUNS FOR A STUDENT ----------
 app.delete('/api/runs/:usn', (req, res) => {
   const { usn } = req.params;
 
@@ -267,31 +287,12 @@ app.delete('/api/runs/:usn', (req, res) => {
 });
 
 
-  db.all(
-    `
-    SELECT *
-    FROM experiment_runs
-    WHERE usn = ?
-    ORDER BY created_at ASC
-    `,
-    [usn],
-    (err, rows) => {
-      if (err) {
-        console.error('❌ Fetch runs error:', err);
-        return res.status(500).json({ error: 'Database error while fetching runs' });
-      }
-
-      res.json({ runs: rows });
-    }
-  );
-});
 // Serve React build
 app.use(express.static(path.join(__dirname, '../build')));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+app.use((req, res) => {
+  res.send('Backend is running');
 });
-
 // ---------- SERVER ----------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
